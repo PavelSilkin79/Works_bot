@@ -14,11 +14,23 @@ class Organization(Base):
     email = Column(String, nullable=True)
 
 
-class Employee(Base):
-    __tablename__ = 'employees'
+class Installers(Base):
+    __tablename__ = 'installers'
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
-    post = Column(String, nullable=False)
-    contact = Column(String, nullable=True)
+    phone = Column(String, nullable=False)
+    address = Column(String, nullable=True)
+    email = Column(String, nullable=True)
+    photo_path = Column(String, nullable=True)
+
+
+class Welders(Base):
+    __tablename__ = 'welders'
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    phone = Column(String, nullable=False)
+    address = Column(String, nullable=True)
+    email = Column(String, nullable=True)
     photo_path = Column(String, nullable=True)

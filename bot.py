@@ -6,7 +6,7 @@ from aiogram_dialog import Dialog, setup_dialogs#, DialogRegistry
 from config_data.config import Config, load_config
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from handlers import command, organizations, other
+from handlers import command, organizations,installers, welders, other
 from keyboards.main_menu import set_main_menu
 from aiogram.fsm.storage.memory import MemoryStorage
 
@@ -46,6 +46,8 @@ async def start_bot():
  # Регистрируем роутеры в диспетчере
     dp.include_routers(command.command_router)
     dp.include_routers(organizations.org_router)
+    dp.include_routers(installers.installers_router)
+    dp.include_routers(welders.welders_router)
     dp.include_routers(other.other_router)
 
 
