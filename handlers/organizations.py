@@ -1,19 +1,14 @@
-import os
 from aiogram import Router
 from aiogram.types import Message, CallbackQuery
 from aiogram_dialog import Dialog, DialogManager, StartMode, Window
 from aiogram_dialog.widgets.text import Const, Format
-from aiogram_dialog.widgets.kbd import Row, Button, Column, Select, Multiselect, SwitchTo, Group
+from aiogram_dialog.widgets.kbd import Button, Column, Select, Multiselect, SwitchTo
 from aiogram_dialog.widgets.input import TextInput
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, func
 from .command import setup_db
-from db import get_db
 from models import Organization
 from states.states import OrgSG, CommandSG
 
-# Директория для сохранения фотографий
-PHOTO_DIR = 'photos'
-os.makedirs(PHOTO_DIR, exist_ok=True)
 
 org_router = Router()
 
@@ -28,12 +23,12 @@ async def start_command(callback: CallbackQuery, button: Button, dialog_manager:
         await callback.answer("⚠ Ошибка: База данных недоступна.")
         return
 
-    dialog_manager.start_data = {"session_factory": session_factory}
-
     await dialog_manager.start(
         state=OrgSG.start,
-        mode=StartMode.RESET_STACK
+        mode=StartMode.RESET_STACK,
+        data={"session_factory": session_factory}
     )
+    dialog_manager.start_data = {"session_factory": session_factory}
 
 
 async def orgs_list(dialog_manager: DialogManager, **kwargs):
@@ -50,38 +45,51 @@ async def orgs_list(dialog_manager: DialogManager, **kwargs):
 
 
 # Добавление организации
-async def add_org_name(event: Message, message: Message, dialog_manager: DialogManager, text: str):
+async def add_org_name(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
+    # Проверка на существование организации с таким названием
+    session_factory = await setup_db()
+
+    async with session_factory() as session:
+        existing_org = await session.execute(
+            Organization.__table__.select().where(func.lower(Organization.name) == text.lower())
+        )
+        existing_org = existing_org.scalars().first()
+
+        if existing_org:
+            # Организация с таким названием уже существует
+            await event.answer(f"Организация с таким названием '{text}' уже существует.")
+            await dialog_manager.done()
+            return
+
+    # Если организация не существует, сохраняем название в данных диалога
     dialog_manager.dialog_data["name"] = text
     await dialog_manager.next()
 
-async def add_org_address(event: Message, message: Message, dialog_manager: DialogManager, text: str):
+async def add_org_address(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     dialog_manager.dialog_data["address"] = text
     await dialog_manager.next()
 
-async def add_org_phone(event: Message, message: Message, dialog_manager: DialogManager, text: str):
+async def add_org_phone(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     dialog_manager.dialog_data["phone"] = text
     await dialog_manager.next()
 
-async def add_org_email(event:Message, callback: CallbackQuery, dialog_manager: DialogManager, text: str):
-    dialog_manager.dialog_data["email"] = text  # Сохраняем email
-    session_factory = dialog_manager.start_data.get("session_factory")
-
-    if not session_factory:
-        await message.answer("⚠ Ошибка: База данных недоступна.")
-        return
+async def add_org_email(event:Message, widget: TextInput, dialog_manager: DialogManager, text: str):
+    session_factory = await setup_db()
+    dialog_manager.dialog_data["email"] = text
 
     async with session_factory() as session:
+
+        # Если организация не существует, добавляем новую
         new_org = Organization(
             name=dialog_manager.dialog_data["name"],
             phone=dialog_manager.dialog_data["phone"],
-           address=dialog_manager.dialog_data["address"],
+            address=dialog_manager.dialog_data["address"],
             email=dialog_manager.dialog_data["email"],
         )
         session.add(new_org)
         await session.commit()
 
     # Отправляем сообщение, что организация была добавлена
-
     await event.answer(f"Организация '{dialog_manager.dialog_data['name']}' успешно добавлена!")
     await dialog_manager.done()
     await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
@@ -117,18 +125,6 @@ async def delete_selected_orgs(callback: CallbackQuery, button: Button, dialog_m
     await dialog_manager.start(state=CommandSG.start)
 
 
-# Выбор организации для редактирования
-#async def select_multiple_orgs_for_edit(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-  #  start_data = dialog_manager.start_data or {}
- #   session_factory = start_data.get("session_factory")
-#    selected_orgs = dialog_manager.find("edit_org_multi").get_checked()  # Получаем ID выбранных организаций
-#    dialog_manager.dialog_data["edit_org_ids"] = selected_orgs  # Сохраняем их в dialog_data
-
-#    if len(selected_orgs) == 1:  # Если выбрана только одна организация
-#        dialog_manager.dialog_data["edit_org_id"] = selected_orgs[0]  # Сохраняем ID организации
-#        await dialog_manager.next()  # Переходим сразу к выбору поля для редактирования
-#    else:
-#        await dialog_manager.next()
 async def save_selected_org_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
     dialog_manager.dialog_data["edit_org_id"] = int(item_id)  # Сохраняем ID выбранной организации
     await dialog_manager.next()  # Переход к следующему шагу
@@ -149,7 +145,6 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
         await event.answer("Ошибка: Не выбран элемент для редактирования.")
         return
 
-    edit_org_id = dialog_manager.dialog_data.get("edit_org_id")
     if not edit_org_id:
         await event.answer("Ошибка: ID организации отсутствует.")
         return
@@ -211,13 +206,15 @@ start_dialog = Dialog(
     ),
     Window(
         Const("Выберите организации для удаления:"),
-        Column(Multiselect(
-            checked_text=Format("{item.name} ✅"),  # Когда элемент выбран
-            unchecked_text=Format("{item.name} ❌"),  # Когда элемент НЕ выбран
-            id="del_org_multi",
-            item_id_getter=lambda item: item.id,  # Получаем ID организации
-            items="organizations",
-        )),
+        Column(
+            Multiselect(
+                checked_text=Format("{item.name} ✅"),  # Когда элемент выбран
+                unchecked_text=Format("{item.name} ❌"),  # Когда элемент НЕ выбран
+                id="del_org_multi",
+                item_id_getter=lambda item: item.id,  # Получаем ID организации
+                items="organizations",
+            )
+        ),
         Button(Const("❌ Удалить выбранные"), id="confirm_delete", on_click=delete_selected_orgs),
         SwitchTo(Const("🔙 Назад"), id="back", state=OrgSG.start),
         state=OrgSG.delete_org,

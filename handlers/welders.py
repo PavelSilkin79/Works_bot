@@ -58,9 +58,9 @@ async def add_weld_email(event:Message, callback: CallbackQuery, dialog_manager:
         await session.commit()
 
     # Отправляем сообщение, что организация была добавлена
-
     await event.answer(f"Сварщик '{dialog_manager.dialog_data['name']}' успешно добавлен!")
     await dialog_manager.done()
+    await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
 
 welders_dialog = Dialog(
     Window(

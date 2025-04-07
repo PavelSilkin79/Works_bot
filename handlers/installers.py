@@ -44,11 +44,8 @@ async def add_inst_phone(event: CallbackQuery, message: Message, dialog_manager:
     await dialog_manager.next()
 
 async def add_inst_email(event:Message, callback: CallbackQuery, dialog_manager: DialogManager, text: str):
-
-
     session_factory = await setup_db()
     dialog_manager.dialog_data["email"] = text
-
 
     async for session in get_db(session_factory):
         new_installers= Installers(
@@ -61,9 +58,9 @@ async def add_inst_email(event:Message, callback: CallbackQuery, dialog_manager:
         await session.commit()
 
     # Отправляем сообщение, что организация была добавлена
-
     await event.answer(f"Монтажник '{dialog_manager.dialog_data['name']}' успешно добавлен!")
     await dialog_manager.done()
+    await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
 
 installers_dialog = Dialog(
     Window(

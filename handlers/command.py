@@ -67,10 +67,10 @@ async def list_organizations(message: Message, dialog_manager: DialogManager):
         text = "\n".join([f"{org.id}. {org.name} ({org.phone})" for org in organizations])
         await message.answer(f"Список организаций:\n{text}")
 
-    await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
+    await dialog_manager.start(state=OrgSG.start, mode=StartMode.RESET_STACK, data={"session_factory": session_factory})
 
 @command_router.message(Command('list_installers'))
-async def list_installers(message: Message):
+async def list_installers(message: Message, dialog_manager: DialogManager):
     session_factory = await setup_db()  # Получаем session_factory
 
     async with session_factory() as session:
@@ -83,9 +83,11 @@ async def list_installers(message: Message):
         text = "\n".join([f"{inst.id}. {inst.name} ({inst.phone})" for inst in installers])
         await message.answer(f"Список монажников:\n{text}")
 
+    await dialog_manager.start(state=InstallersSG.start, mode=StartMode.RESET_STACK, data={"session_factory": session_factory})
+
 
 @command_router.message(Command('list_welders'))
-async def list_welders(message: Message):
+async def list_welders(message: Message, dialog_manager: DialogManager):
     session_factory = await setup_db()  # Получаем session_factory
 
     async with session_factory() as session:
@@ -97,6 +99,8 @@ async def list_welders(message: Message):
     else:
         text = "\n".join([f"{weld.id}. {weld.name} ({weld.phone})" for weld in welders])
         await message.answer(f"Список сварщиков:\n{text}")
+
+    await dialog_manager.start(state=WeldersSG.start, mode=StartMode.RESET_STACK, data={"session_factory": session_factory})
 
 
 # кнопки меню
