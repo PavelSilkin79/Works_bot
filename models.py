@@ -1,8 +1,10 @@
-
+from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from db import Base
+#from db import Base
 
+# Создаем базовый класс для моделей
+Base = declarative_base()
 
 class Organization(Base):
     __tablename__ = 'organizations'
@@ -19,6 +21,8 @@ class Installers(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    surname = Column(String, nullable=False)
+    patronymic = Column(String, nullable=True)
     phone = Column(String, nullable=False)
     address = Column(String, nullable=True)
     email = Column(String, nullable=True)
@@ -30,6 +34,8 @@ class Welders(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    surname = Column(String, nullable=False)
+    patronymic = Column(String, nullable=True)
     phone = Column(String, nullable=False)
     address = Column(String, nullable=True)
     email = Column(String, nullable=True)

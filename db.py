@@ -1,9 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base
 from config_data.config import Config, load_config
+from models import Base
 
-# Создаем базовый класс для моделей
-Base = declarative_base()
 
 # Асинхронная функция создания подключения к базе данных
 async def init_db(config: Config):
