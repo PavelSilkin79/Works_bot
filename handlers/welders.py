@@ -88,7 +88,8 @@ async def add_weld_phone(event: Message, widget: TextInput, dialog_manager: Dial
 async def add_weld_email(event:Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     session_factory = await setup_db()
     dialog_manager.dialog_data["email"] = text
-    async for session in get_db(session_factory):
+
+    async with session_factory() as session:
         new_welders= Welders(
             name=dialog_manager.dialog_data["name"],
             surname=dialog_manager.dialog_data["surname"],

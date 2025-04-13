@@ -89,7 +89,7 @@ async def add_inst_email(event:Message, widget: TextInput, dialog_manager: Dialo
     session_factory = await setup_db()
     dialog_manager.dialog_data["email"] = text
 
-    async for session in get_db(session_factory):
+    async with session_factory() as session:
         new_installers= Installers(
             name=dialog_manager.dialog_data["name"],
             surname=dialog_manager.dialog_data["surname"],
