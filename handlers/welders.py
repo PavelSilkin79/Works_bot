@@ -28,6 +28,9 @@ async def start_command(callback: CallbackQuery, button: Button, dialog_manager:
         await callback.answer("⚠ Ошибка: База данных недоступна.")
         return
 
+    # Сохраняем session_factory в dialog_data, чтобы не потерялось при SwitchTo
+    dialog_manager.dialog_data["session_factory"] = session_factory
+
     await dialog_manager.start(
         state=WeldersSG.start,
         mode=StartMode.RESET_STACK,
@@ -45,7 +48,7 @@ async def weld_list(dialog_manager: DialogManager, **kwargs):
 
     async with session_factory() as session:
         result = await session.execute(select(Welders))
-        organizations = result.scalars().all()
+        welders = result.scalars().all()
         return {"welders": welders}
 
 
@@ -114,8 +117,8 @@ async def delete_selected_weld(callback: CallbackQuery, button: Button, dialog_m
         await callback.answer("⚠ Ошибка: База данных недоступна.")
         return
 
-    selected_weld = dialog_manager.find("del_weld_multi").get_checked()
-    if not selected_weld:
+    selected_welds = dialog_manager.find("del_weld_multi").get_checked()
+    if not selected_welds:
         await callback.answer("⚠ Вы не выбрали сварщика для удаления.")
         return
 
@@ -150,14 +153,14 @@ async def edit_weld_field(callback: CallbackQuery, button: Button, dialog_manage
 
 async def save_edited_field(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     edit_field = dialog_manager.dialog_data.get("edit_field")
-    edit_org_id = dialog_manager.dialog_data.get("edit_weld_id")
+    edit_weld_id = dialog_manager.dialog_data.get("edit_weld_id")
 
     if not edit_field:
         await event.answer("Ошибка: Не выбран элемент для редактирования.")
         return
 
     if not edit_weld_id:
-        await event.answer("Ошибка: ID организации отсутствует.")
+        await event.answer("Ошибка: ID сварщик отсутствует.")
         return
 
     # Запрос на обновление в базе данных
@@ -226,7 +229,7 @@ welders_dialog = Dialog(
         state=WeldersSG.add_email,
     ),
     Window(
-        Const("Выберите организации для удаления:"),
+        Const("Выберите сварщика для удаления:"),
         Column(
             Multiselect(
                 checked_text=Format("{item.name} ✅"),  # Когда элемент выбран

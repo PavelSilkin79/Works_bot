@@ -110,11 +110,13 @@ async def add_org(callback: CallbackQuery, button: Button, dialog_manager: Dialo
 
 
 async def add_installers(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    await dialog_manager.start(state=InstallersSG.start, mode=StartMode.RESET_STACK)
+    session_factory = await setup_db()
+    await dialog_manager.start(state=InstallersSG.start, mode=StartMode.RESET_STACK, data={"session_factory": session_factory})
 
 
 async def add_welders(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    await dialog_manager.start(state=WeldersSG.start, mode=StartMode.RESET_STACK)
+    session_factory = await setup_db()
+    await dialog_manager.start(state=WeldersSG.start, mode=StartMode.RESET_STACK, data={"session_factory": session_factory})
 
 
 

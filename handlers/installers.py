@@ -102,7 +102,7 @@ async def add_inst_email(event:Message, widget: TextInput, dialog_manager: Dialo
         await session.commit()
 
     # Отправляем сообщение, что организация была добавлена
-    await event.answer(f"Монтажник '{dialog_manager.dialog_data['name']}' успешно добавлен!")# надо добавить еще и фамилию
+    await event.answer(f"Монтажник {dialog_manager.dialog_data['name']} {dialog_manager.dialog_data["surname"]} успешно добавлен!")# надо добавить еще и фамилию
     await dialog_manager.done()
     await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
 
@@ -114,9 +114,9 @@ async def delete_selected_inst(callback: CallbackQuery, button: Button, dialog_m
         await callback.answer("⚠ Ошибка: База данных недоступна.")
         return
 
-    selected_inst = dialog_manager.find("del_inst_multi").get_checked()
-    if not selected_inst:
-        await callback.answer("⚠ Вы не выбрали организации для удаления.")
+    selected_insts = dialog_manager.find("del_inst_multi").get_checked()
+    if not selected_insts:
+        await callback.answer("⚠ Вы не выбрали монтажников для удаления.")
         return
 
     # Преобразуем ID из строк в числа
@@ -130,14 +130,14 @@ async def delete_selected_inst(callback: CallbackQuery, button: Button, dialog_m
         await session.execute(delete(Installers).where(Installers.id.in_(selected_insts)))
         await session.commit()
 
-    await callback.answer("✅ Организации удалены!")
+    await callback.answer("✅ Монтажники удалены!")
      # Обновляем данные вручную через restart
     await dialog_manager.reset_stack()
     await dialog_manager.start(state=CommandSG.start)
 
 
 async def save_selected_inst_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
-    dialog_manager.dialog_data["edit_org_id"] = int(item_id)  # Сохраняем ID выбранного монтажника
+    dialog_manager.dialog_data["edit_inst_id"] = int(item_id)  # Сохраняем ID выбранного монтажника
     await dialog_manager.next()  # Переход к следующему шагу
 
 
@@ -150,14 +150,14 @@ async def edit_inst_field(callback: CallbackQuery, button: Button, dialog_manage
 
 async def save_edited_field(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     edit_field = dialog_manager.dialog_data.get("edit_field")
-    edit_org_id = dialog_manager.dialog_data.get("edit_org_id")
+    edit_inst_id = dialog_manager.dialog_data.get("edit_org_id")
 
     if not edit_field:
         await event.answer("Ошибка: Не выбран элемент для редактирования.")
         return
 
     if not edit_inst_id:
-        await event.answer("Ошибка: ID организации отсутствует.")
+        await event.answer("Ошибка: ID монтажник отсутствует.")
         return
 
     # Запрос на обновление в базе данных
@@ -231,9 +231,9 @@ installers_dialog = Dialog(
             Multiselect(
                 checked_text=Format("{item.name} ✅"),  # Когда элемент выбран
                 unchecked_text=Format("{item.name} ❌"),  # Когда элемент НЕ выбран
-                id="del_org_multi",
+                id="del_inst_multi",
                 item_id_getter=lambda item: item.id,  # Получаем ID организации
-                items="organizations",
+                items="installers",
             )
         ),
         Button(Const("❌ Удалить выбранные"), id="confirm_delete", on_click=delete_selected_inst),
