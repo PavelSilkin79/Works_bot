@@ -35,8 +35,6 @@ async def start_command(callback: CallbackQuery, button: Button, dialog_manager:
 
 
 async def orgs_list(dialog_manager: DialogManager, **kwargs):
-#    start_data = dialog_manager.start_data or {}
-#    session_factory = start_data.get("session_factory")
     session_factory = (
         dialog_manager.start_data.get("session_factory")
         if dialog_manager.start_data else None

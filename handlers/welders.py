@@ -44,11 +44,25 @@ async def weld_list(dialog_manager: DialogManager, **kwargs):
     session_factory = start_data.get("session_factory")
 
     if not session_factory:
-        return {"welders": []}  # Возвращаем пустой список вместо ошибки
+     #   await dialog_manager.done()  # просто выход, если сессии нет
+        await dialog_manager.done("❗ Ошибка подключения к базе данных.")
+        return {"welders": []}
 
     async with session_factory() as session:
         result = await session.execute(select(Welders))
         welders = result.scalars().all()
+
+        if not welders:
+            # Получаем объект сообщения или колбэка
+            event = dialog_manager.event
+            if hasattr(event, "message"):
+                await event.message.answer("❗ Список сварщиков пуст. Возвращаемся в меню.")
+            elif hasattr(event, "callback_query"):
+                await event.callback_query.message.answer("❗ Список сварщиков пуст. Возвращаемся в меню.")
+
+            await dialog_manager.start(CommandSG.start, mode=StartMode.RESET_STACK)
+            return {}
+
         return {"welders": welders}
 
 
@@ -105,7 +119,7 @@ async def add_weld_email(event:Message, widget: TextInput, dialog_manager: Dialo
         await session.commit()
 
     # Отправляем сообщение, что организация была добавлена
-    await event.answer(f"Сварщик '{dialog_manager.dialog_data['name']}' успешно добавлен!")# Надо добавить фамилию
+    await event.answer(f"Сварщик {dialog_manager.dialog_data['name']} {dialog_manager.dialog_data["surname"]} успешно добавлен!")# Надо добавить фамилию
     await dialog_manager.done()
     await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
 
