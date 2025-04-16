@@ -23,7 +23,7 @@ async def back_command(callback: CallbackQuery, button: Button, dialog_manager: 
 
 # Стартовый командный хэндлер
 async def start_command(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    session_factory = await setup_db()
+    session_factory = dialog_manager.middleware_data.get("session_factory")
     if not session_factory:
         await callback.answer("⚠ Ошибка: База данных недоступна.")
         return
@@ -37,15 +37,26 @@ async def start_command(callback: CallbackQuery, button: Button, dialog_manager:
 
 
 async def inst_list(dialog_manager: DialogManager, **kwargs):
-    start_data = dialog_manager.start_data or {}
-    session_factory = start_data.get("session_factory")
+    session_factory = dialog_manager.middleware_data.get("session_factory")
 
     if not session_factory:
+        await dialog_manager.done("❗ Ошибка подключения к базе данных.")
         return {"installers": []}  # Возвращаем пустой список вместо ошибки
 
     async with session_factory() as session:
         result = await session.execute(select(Installers))
         installers = result.scalars().all()
+
+        if not installers:
+            # Получаем объект сообщения или колбэка
+            event = dialog_manager.event
+            if hasattr(event, "message"):
+                await event.message.answer("❗ Список монтажников пуст. Возвращаемся в меню.")
+            elif hasattr(event, "callback_query"):
+                await event.callback_query.message.answer("❗ Список монтажников пуст. Возвращаемся в меню.")
+
+            await dialog_manager.start(CommandSG.start, mode=StartMode.RESET_STACK)
+            return {}
         return {"installers": installers}
 
 
@@ -56,7 +67,7 @@ async def add_inst_name(event: Message, widget: TextInput, dialog_manager: Dialo
 
 async def add_inst_surname(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
      # Проверка на существование фамилии
-    session_factory = await setup_db()
+    session_factory = dialog_manager.middleware_data.get("session_factory")
 
     async with session_factory() as session:
         existing_inst = await session.execute(
@@ -86,7 +97,7 @@ async def add_inst_phone(event: Message, widget: TextInput, dialog_manager: Dial
     await dialog_manager.next()
 
 async def add_inst_email(event:Message, widget: TextInput, dialog_manager: DialogManager, text: str):
-    session_factory = await setup_db()
+    session_factory = dialog_manager.middleware_data.get("session_factory")
     dialog_manager.dialog_data["email"] = text
 
     async with session_factory() as session:
@@ -107,8 +118,7 @@ async def add_inst_email(event:Message, widget: TextInput, dialog_manager: Dialo
     await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
 
 async def delete_selected_inst(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    start_data = dialog_manager.start_data or {}
-    session_factory = start_data.get("session_factory")
+    session_factory = dialog_manager.middleware_data.get("session_factory")
 
     if not session_factory:
         await callback.answer("⚠ Ошибка: База данных недоступна.")
@@ -150,7 +160,7 @@ async def edit_inst_field(callback: CallbackQuery, button: Button, dialog_manage
 
 async def save_edited_field(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     edit_field = dialog_manager.dialog_data.get("edit_field")
-    edit_inst_id = dialog_manager.dialog_data.get("edit_org_id")
+    edit_inst_id = dialog_manager.dialog_data.get("edit_inst_id")
 
     if not edit_field:
         await event.answer("Ошибка: Не выбран элемент для редактирования.")
@@ -161,7 +171,7 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
         return
 
     # Запрос на обновление в базе данных
-    session_factory = dialog_manager.start_data.get("session_factory")
+    session_factory = dialog_manager.middleware_data.get("session_factory")
     async with session_factory() as session:
         result = await session.execute(select(Installers).where(Installers.id == edit_inst_id))
         inst = result.scalar_one_or_none()

@@ -18,13 +18,10 @@ async def back_command(callback: CallbackQuery, button: Button, dialog_manager: 
 
 # Стартовый командный хэндлер
 async def start_command(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    session_factory = await setup_db()
+    session_factory = dialog_manager.middleware_data.get("session_factory")
     if not session_factory:
         await callback.answer("⚠ Ошибка: База данных недоступна.")
         return
-
-    # Сохраняем session_factory в dialog_data, чтобы не потерялось при SwitchTo
-    dialog_manager.dialog_data["session_factory"] = session_factory
 
     await dialog_manager.start(
         state=OrgSG.start,
@@ -35,18 +32,26 @@ async def start_command(callback: CallbackQuery, button: Button, dialog_manager:
 
 
 async def orgs_list(dialog_manager: DialogManager, **kwargs):
-    session_factory = (
-        dialog_manager.start_data.get("session_factory")
-        if dialog_manager.start_data else None
-    ) or dialog_manager.dialog_data.get("session_factory")
-
+    session_factory = dialog_manager.middleware_data.get("session_factory")
 
     if not session_factory:
+        await dialog_manager.done("❗ Ошибка подключения к базе данных.")
         return {"organizations": []}  # Возвращаем пустой список вместо ошибки
 
     async with session_factory() as session:
         result = await session.execute(select(Organization))
         organizations = result.scalars().all()
+        if not organizations:
+            # Получаем объект сообщения или колбэка
+            event = dialog_manager.event
+            if hasattr(event, "message"):
+                await event.message.answer("❗ Список организаций пуст. Возвращаемся в меню.")
+            elif hasattr(event, "callback_query"):
+                await event.callback_query.message.answer("❗ Список организаций пуст. Возвращаемся в меню.")
+
+            await dialog_manager.start(CommandSG.start, mode=StartMode.RESET_STACK)
+            return {}
+
         return {"organizations": organizations}
 
 
@@ -102,8 +107,7 @@ async def add_org_email(event:Message, widget: TextInput, dialog_manager: Dialog
 
 
 async def delete_selected_orgs(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    start_data = dialog_manager.start_data or {}
-    session_factory = start_data.get("session_factory")
+    session_factory = dialog_manager.middleware_data.get("session_factory")
 
     if not session_factory:
         await callback.answer("⚠ Ошибка: База данных недоступна.")
@@ -156,7 +160,7 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
         return
 
     # Запрос на обновление в базе данных
-    session_factory = dialog_manager.start_data.get("session_factory")
+    session_factory = dialog_manager.middleware_data.get("session_factory")
     async with session_factory() as session:
         result = await session.execute(select(Organization).where(Organization.id == edit_org_id))
         org = result.scalar_one_or_none()

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import declarative_base
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-#from db import Base
+
 
 # Создаем базовый класс для моделей
 Base = declarative_base()
