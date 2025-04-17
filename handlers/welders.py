@@ -3,17 +3,13 @@ from aiogram import Router
 from aiogram.types import Message, CallbackQuery
 from aiogram_dialog import Dialog, DialogManager, StartMode, Window
 from aiogram_dialog.widgets.text import Const, Format
-from aiogram_dialog.widgets.kbd import SwitchTo, Column, Button, Select, Multiselect
-from aiogram_dialog.widgets.input import TextInput
+from aiogram_dialog.widgets.kbd import SwitchTo, Column, Button, Select, Multiselect, Row
+from aiogram_dialog.widgets.input import TextInput, MessageInput
 from sqlalchemy import select, delete, func
 from .command import setup_db
 from models import Welders
 from states.states import WeldersSG, CommandSG
 
-
-# Директория для сохранения фотографий
-PHOTO_DIR = 'photos'
-os.makedirs(PHOTO_DIR, exist_ok=True)
 
 welders_router = Router()
 
@@ -61,7 +57,7 @@ async def weld_list(dialog_manager: DialogManager, **kwargs):
         return {"welders": welders}
 
 
-# Добавление организации
+# Добавление сварщика
 async def add_weld_name(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     dialog_manager.dialog_data["name"] = text
     await dialog_manager.next()
@@ -90,6 +86,16 @@ async def add_weld_patronymic (event: Message, widget: TextInput, dialog_manager
     dialog_manager.dialog_data["patronymic"] = text
     await dialog_manager.next()
 
+async def add_weld_photo(message: Message, widget: MessageInput, dialog_manager: DialogManager):
+    if not message.photo:
+        await message.answer("Пожалуйста, отправьте фото или нажмите «Пропустить».")
+        return
+
+    file_id = message.photo[-1].file_id
+    dialog_manager.dialog_data["photo_id"] = file_id
+    await message.answer("Фото сохранено.")
+    await dialog_manager.next()
+
 async def add_weld_address(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     dialog_manager.dialog_data["address"] = text
     await dialog_manager.next()
@@ -107,6 +113,7 @@ async def add_weld_email(event:Message, widget: TextInput, dialog_manager: Dialo
             name=dialog_manager.dialog_data["name"],
             surname=dialog_manager.dialog_data["surname"],
             patronymic=dialog_manager.dialog_data["patronymic"],
+            photo_id=dialog_manager.dialog_data["photo_id"],
             phone=dialog_manager.dialog_data["phone"],
             address=dialog_manager.dialog_data["address"],
             email=dialog_manager.dialog_data["email"],
@@ -114,10 +121,15 @@ async def add_weld_email(event:Message, widget: TextInput, dialog_manager: Dialo
         session.add(new_welders)
         await session.commit()
 
-    # Отправляем сообщение, что организация была добавлена
+    # Отправляем сообщение, что сварщик была добавлена
     await event.answer(f"Сварщик {dialog_manager.dialog_data['name']} {dialog_manager.dialog_data["surname"]} успешно добавлен!")# Надо добавить фамилию
     await dialog_manager.done()
     await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
+
+async def skip_photo(c: CallbackQuery, button: Button, manager: DialogManager):
+    manager.dialog_data["photo"] = None
+    await c.message.answer("Фото пропущено.")
+    await manager.next()
 
 async def delete_selected_weld(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")
@@ -149,7 +161,7 @@ async def delete_selected_weld(callback: CallbackQuery, button: Button, dialog_m
 
 
 async def save_selected_weld_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
-    dialog_manager.dialog_data["edit_weld_id"] = int(item_id)  # Сохраняем ID выбранного монтажника
+    dialog_manager.dialog_data["edit_weld_id"] = int(item_id)  # Сохраняем ID выбранного сварщика
     await dialog_manager.next()  # Переход к следующему шагу
 
 
@@ -220,6 +232,12 @@ welders_dialog = Dialog(
         state=WeldersSG.add_patronymic,
     ),
     Window(
+        Const("Пожалуйста, отправьте фото монтажника или нажмите «Пропустить»:"),
+        MessageInput(add_weld_photo, content_types=["photo"]),
+        Row(Button(Const("Пропустить"), id="skip_photo", on_click=skip_photo),),
+        state=WeldersSG.add_photo,
+    ),
+    Window(
         Const("Введите телефон сварщика:"),
         TextInput(id="phone_input", on_success=add_weld_phone),
         SwitchTo(Const("🔙 Назад"), id="back", state=WeldersSG.start),
@@ -241,10 +259,10 @@ welders_dialog = Dialog(
         Const("Выберите сварщика для удаления:"),
         Column(
             Multiselect(
-                checked_text=Format("{item.name} ✅"),  # Когда элемент выбран
-                unchecked_text=Format("{item.name} ❌"),  # Когда элемент НЕ выбран
+                checked_text=Format("{item.name} {item.surname} ✅"),  # Когда элемент выбран
+                unchecked_text=Format("{item.name} {item.surname} ❌"),  # Когда элемент НЕ выбран
                 id="del_weld_multi",
-                item_id_getter=lambda item: item.id,  # Получаем ID организации
+                item_id_getter=lambda item: item.id,  # Получаем ID элемента
                 items="welders",
             )
         ),
@@ -257,7 +275,7 @@ welders_dialog = Dialog(
         Const("Выберите сварщика для редактирования:"),
         Column(
             Select(
-                Format("{item.name}"),  # Показываем название организации
+                Format("{item.name} {item.surname}"),  # Показываем имя и фамилию
                 id="edit_weld_select",
                 item_id_getter=lambda item: str(item.id),  # ID должен быть строкой
                 items="welders",
@@ -266,7 +284,7 @@ welders_dialog = Dialog(
         ),
         SwitchTo(Const("🔙 Назад"), id="back", state=WeldersSG.start),
         state=WeldersSG.select_weld,
-        getter=weld_list,  # Загружаем список организаций
+        getter=weld_list,  # Загружаем список сварщиков
     ),
     Window(
         Const("Выберите, что редактировать:"),

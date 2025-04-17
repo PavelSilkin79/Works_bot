@@ -23,10 +23,11 @@ class Installers(Base):
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
     patronymic = Column(String, nullable=True)
+    photo_id = Column(String, nullable=True)  # <- храним file_id
     phone = Column(String, nullable=False)
     address = Column(String, nullable=True)
     email = Column(String, nullable=True)
-    photo_path = Column(String, nullable=True)
+
 
 
 class Welders(Base):
@@ -36,7 +37,8 @@ class Welders(Base):
     name = Column(String, nullable=False)
     surname = Column(String, nullable=False)
     patronymic = Column(String, nullable=True)
+    photo_id = Column(String, nullable=True)  # <- храним file_id
     phone = Column(String, nullable=False)
     address = Column(String, nullable=True)
     email = Column(String, nullable=True)
-    photo_path = Column(String, nullable=True)
+

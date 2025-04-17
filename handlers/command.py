@@ -81,7 +81,7 @@ async def list_installers(message: Message, dialog_manager: DialogManager):
     if not installers:
         await message.answer('Монтажников нет')
     else:
-        text = "\n".join([f"{inst.id}. {inst.name} ({inst.surname})" for inst in installers])
+        text = "\n".join([f"{inst.id}. {inst.name} {inst.surname}" for inst in installers])
         await message.answer(f"Список монажников:\n{text}")
 
     await dialog_manager.start(state=InstallersSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
@@ -99,7 +99,7 @@ async def list_welders(message: Message, dialog_manager: DialogManager):
     if not welders:
         await message.answer('Сварщиков нет')
     else:
-        text = "\n".join([f"{weld.id}. {weld.name} ({weld.surname})" for weld in welders])
+        text = "\n".join([f"{weld.id}. {weld.name} {weld.surname}" for weld in welders])
         await message.answer(f"Список сварщиков:\n{text}")
 
     await dialog_manager.start(state=WeldersSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
