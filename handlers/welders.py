@@ -1,6 +1,7 @@
 import os
 from aiogram import Router
 from aiogram.types import Message, CallbackQuery
+from aiogram.enums import ParseMode
 from aiogram_dialog import Dialog, DialogManager, StartMode, Window
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.widgets.kbd import SwitchTo, Column, Button, Select, Multiselect, Row
@@ -64,7 +65,6 @@ async def add_weld_name(event: Message, widget: TextInput, dialog_manager: Dialo
 
 async def add_weld_surname(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
      # Проверка на существование фамилии
- #   session_factory = await setup_db()
     session_factory = dialog_manager.middleware_data.get("session_factory")
 
     async with session_factory() as session:
@@ -193,7 +193,21 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
         if weld:
             setattr(weld, edit_field, str(text))  # Редактируем нужное поле
             await session.commit()
-            await event.answer(f"✅ {edit_field.capitalize()} обновлено: {text}")
+            FIELD_NAMES = {
+                "address": "Адрес",
+                "phone": "Телефон",
+                "email": "Email",
+                "name": "Имя",
+                "surname": "Фамилия",
+                "patronymic": "Отчество",
+                "photo_id": "Фото"
+            }
+            field_label = FIELD_NAMES.get(edit_field, edit_field)
+            await event.answer(
+            f"✅ Поле *{field_label}* обновлено на: *{text}*",
+            parse_mode="Markdown"
+            )
+ #           await event.answer(f"✅ {edit_field.capitalize()} обновлено: {text}")
         else:
             await event.answer("Ошибка: Данные о сварщике не найдена.")
 

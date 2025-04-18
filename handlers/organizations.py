@@ -1,5 +1,6 @@
 from aiogram import Router
 from aiogram.types import Message, CallbackQuery
+from aiogram.enums import ParseMode
 from aiogram_dialog import Dialog, DialogManager, StartMode, Window
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.widgets.kbd import Button, Column, Select, Multiselect, SwitchTo
@@ -168,7 +169,18 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
         if org:
             setattr(org, edit_field, str(text))  # Редактируем нужное поле
             await session.commit()
-            await event.answer(f"✅ {edit_field.capitalize()} обновлено: {text}")
+            FIELD_NAMES = {
+                "address": "Адрес",
+                "phone": "Телефон",
+                "email": "Email",
+                "name": "Название организации",
+            }
+            field_label = FIELD_NAMES.get(edit_field, edit_field)
+            await event.answer(
+            f"✅ Поле *{field_label}* обновлено на: *{text}*",
+            parse_mode="Markdown"
+            )
+#            await event.answer(f"✅ {edit_field.capitalize()} обновлено: {text}")
         else:
             await event.answer("Ошибка: Организация не найдена.")
 
