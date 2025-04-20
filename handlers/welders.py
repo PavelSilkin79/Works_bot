@@ -1,13 +1,15 @@
 import os
+import logging
 from aiogram import Router
 from aiogram.types import Message, CallbackQuery
-from aiogram.enums import ParseMode
+from aiogram.enums import ParseMode, ContentType
 from aiogram_dialog import Dialog, DialogManager, StartMode, Window
 from aiogram_dialog.widgets.text import Const, Format
 from aiogram_dialog.widgets.kbd import SwitchTo, Column, Button, Select, Multiselect, Row
 from aiogram_dialog.widgets.input import TextInput, MessageInput
+from aiogram_dialog.widgets.media import DynamicMedia
+from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from sqlalchemy import select, delete, func
-from .command import setup_db
 from models import Welders
 from states.states import WeldersSG, CommandSG
 
@@ -54,7 +56,6 @@ async def weld_list(dialog_manager: DialogManager, **kwargs):
 
             await dialog_manager.start(CommandSG.start, mode=StartMode.RESET_STACK)
             return {}
-
         return {"welders": welders}
 
 
@@ -91,7 +92,9 @@ async def add_weld_photo(message: Message, widget: MessageInput, dialog_manager:
         await message.answer("Пожалуйста, отправьте фото или нажмите «Пропустить».")
         return
 
-    file_id = message.photo[-1].file_id
+    photo = message.photo[-1]
+
+    file_id =  photo.file_id
     dialog_manager.dialog_data["photo_id"] = file_id
     await message.answer("Фото сохранено.")
     await dialog_manager.next()
@@ -127,8 +130,8 @@ async def add_weld_email(event:Message, widget: TextInput, dialog_manager: Dialo
     await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
 
 async def skip_photo(c: CallbackQuery, button: Button, manager: DialogManager):
-    manager.dialog_data["photo"] = None
-    await c.message.answer("Фото пропущено.")
+    manager.dialog_data["photo_id"] = None
+    await c.answer("Фото пропущено.")
     await manager.next()
 
 async def delete_selected_weld(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
@@ -207,7 +210,6 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
             f"✅ Поле *{field_label}* обновлено на: *{text}*",
             parse_mode="Markdown"
             )
- #           await event.answer(f"✅ {edit_field.capitalize()} обновлено: {text}")
         else:
             await event.answer("Ошибка: Данные о сварщике не найдена.")
 
@@ -215,10 +217,35 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
     await dialog_manager.reset_stack()
     await dialog_manager.start(state=CommandSG.start)
 
+async def save_info_weld_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
+    logging.info(f"Выбран сварщика с ID {item_id}")
+    dialog_manager.dialog_data["welder_id"] = int(item_id)
+    await dialog_manager.switch_to(WeldersSG.show_weld_info)
+
+async def get_welders_data(dialog_manager: DialogManager, **kwargs):
+    session_factory = dialog_manager.middleware_data["session_factory"]
+    welder_id = dialog_manager.dialog_data.get("welder_id")
+
+    async with session_factory() as session:
+        weld = await session.get(Welders, welder_id)
+
+        if not weld:
+            return {"welder": None}
+
+        return {
+            "welder": weld,
+            "photo": MediaAttachment(
+                type=ContentType.PHOTO,
+                file_id=MediaId(weld.photo_id),
+            ) if weld.photo_id else None,
+        }
+
+
 welders_dialog = Dialog(
     Window(
         Const("Выберите действие:"),
         Column(
+            SwitchTo(Const("ℹ️ Информация о сварщике"), id="info_weld", state=WeldersSG.info_weld),
             SwitchTo(Const("✅ Добавить сварщика"), id="add_name", state=WeldersSG.add_name),
             SwitchTo(Const("📝 Редактировать"), id="select_welders", state=WeldersSG.select_weld),
             SwitchTo(Const("❌ Удалить"), id="delete_welders", state=WeldersSG.delete_weld),
@@ -284,6 +311,36 @@ welders_dialog = Dialog(
         SwitchTo(Const("🔙 Назад"), id="back", state=WeldersSG.start),
         state=WeldersSG.delete_weld,
         getter=weld_list,
+    ),
+    Window(
+        Const("Выберите сварщика для просмотра информации:"),  # Текст перед выбором монтажника
+        Column(
+            Select(
+                Format("{item.name}"),
+                id="edit_weld_info",
+                item_id_getter=lambda item: str(item.id),
+                items="welders",
+                on_click=save_info_weld_id,
+            )
+        ),
+        Button(Const("🔙 Назад"), id="back", on_click=back_command),
+        state=WeldersSG.info_weld,
+        getter=weld_list,
+    ),
+    Window(
+        DynamicMedia(
+            selector=lambda data: data.get("photo"),
+        ),
+        Format(
+            "👤 <b>{welder.surname} {welder.name} {welder.patronymic}</b>\n"
+            "📞 Телефон: {welder.phone}\n"
+            "📍 Адрес: {welder.address}\n"
+            "✉️ Email: {welder.email}"
+        ),
+        Button(Const("🔙 Назад"), id="back", on_click=back_command),
+        state=WeldersSG.show_weld_info,
+        parse_mode="HTML",
+        getter=get_welders_data,  # Передаем getter для получения данных
     ),
     Window(
         Const("Выберите сварщика для редактирования:"),

@@ -10,6 +10,7 @@ class CommandSG(StatesGroup):
 
 class OrgSG(StatesGroup):
     start = State()
+    info_org = State()
     add_name = State()
     add_phone = State()
     add_address = State()
@@ -22,6 +23,8 @@ class OrgSG(StatesGroup):
 
 class InstallersSG(StatesGroup):
     start = State()
+    info_inst = State()        # список монтажников
+    show_inst_info = State()   # отображение выбранного монтажника
     add_name = State()
     add_surname = State()
     add_patronymic = State()
@@ -37,6 +40,8 @@ class InstallersSG(StatesGroup):
 
 class WeldersSG(StatesGroup):
     start = State()
+    info_weld = State()        # список монтажников
+    show_weld_info = State()
     add_name = State()
     add_surname = State()
     add_patronymic = State()

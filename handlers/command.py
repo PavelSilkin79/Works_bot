@@ -14,10 +14,6 @@ from states.states import CommandSG, OrgSG, InstallersSG, WeldersSG
 
 command_router = Router()
 
-async def setup_db():
-    config = load_config()
-    session_factory = await init_db(config)  # Получаем session_factory через init_db
-    return session_factory
 
 # Этот хэндлер будет срабатывать на команду /start
 @command_router.message(CommandStart())
@@ -67,11 +63,10 @@ async def list_organizations(message: Message, dialog_manager: DialogManager):
         text = "\n".join([f"{org.id}. {org.name} ({org.phone})" for org in organizations])
         await message.answer(f"Список организаций:\n{text}")
 
-    await dialog_manager.start(state=OrgSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
+    await dialog_manager.start(state=OrgSG.start, mode=StartMode.RESET_STACK)
 
 @command_router.message(Command('list_installers'))
 async def list_installers(message: Message, dialog_manager: DialogManager):
-#    session_factory = await setup_db()  # Получаем session_factory
     session_factory = dialog_manager.middleware_data.get("session_factory")
 
     async with session_factory() as session:
@@ -84,12 +79,11 @@ async def list_installers(message: Message, dialog_manager: DialogManager):
         text = "\n".join([f"{inst.id}. {inst.name} {inst.surname}" for inst in installers])
         await message.answer(f"Список монажников:\n{text}")
 
-    await dialog_manager.start(state=InstallersSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
+    await dialog_manager.start(state=InstallersSG.start, mode=StartMode.RESET_STACK)
 
 
 @command_router.message(Command('list_welders'))
 async def list_welders(message: Message, dialog_manager: DialogManager):
-#    session_factory = await setup_db()  # Получаем session_factory
     session_factory = dialog_manager.middleware_data.get("session_factory")
 
     async with session_factory() as session:
@@ -105,7 +99,6 @@ async def list_welders(message: Message, dialog_manager: DialogManager):
     await dialog_manager.start(state=WeldersSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
 
 async def check_and_start_org(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-#   session_factory = await setup_db()  # Получаем session_factory
     session_factory = dialog_manager.middleware_data.get("session_factory")
 
     async with session_factory() as session:
@@ -120,7 +113,6 @@ async def check_and_start_org(callback: CallbackQuery, button: Button, dialog_ma
             await dialog_manager.start(state=OrgSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
 
 async def check_and_start_inst(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-#    session_factory = await setup_db()  # Получаем session_factory
     session_factory = dialog_manager.middleware_data.get("session_factory")
 
     async with session_factory() as session:
@@ -135,7 +127,6 @@ async def check_and_start_inst(callback: CallbackQuery, button: Button, dialog_m
             await dialog_manager.start(state=InstallersSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
 
 async def check_and_start_welders(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
-    #    session_factory = await setup_db()  # Получаем session_factory
     session_factory = dialog_manager.middleware_data.get("session_factory")  # Получаем session_factory
 
     async with session_factory() as session:
@@ -152,17 +143,14 @@ async def check_and_start_welders(callback: CallbackQuery, button: Button, dialo
 
 # кнопки меню
 async def go_add_org(callback: CallbackQuery, button, dialog_manager: DialogManager):
-#    session_factory = await setup_db()
     session_factory = dialog_manager.middleware_data.get("session_factory")  # Получаем session_factory
     await dialog_manager.start(state=OrgSG.add_name, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
 
 async def go_add_inst(callback: CallbackQuery, button, dialog_manager: DialogManager):
-#    session_factory = await setup_db()
     session_factory = dialog_manager.middleware_data.get("session_factory")  # Получаем session_factory
     await dialog_manager.start(state=InstallersSG.add_name, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
 
 async def go_add_welder(callback: CallbackQuery, button, dialog_manager: DialogManager):
-#    session_factory = await setup_db()
     session_factory = dialog_manager.middleware_data.get("session_factory")  # Получаем session_factory
     await dialog_manager.start(state=WeldersSG.add_name, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
 
