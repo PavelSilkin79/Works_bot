@@ -1,7 +1,7 @@
 import os
-import logging
+import logging, inspect
 from aiogram import Router
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InputMediaPhoto
 from aiogram.enums import ParseMode, ContentType
 from aiogram_dialog import Dialog, DialogManager, StartMode, Window
 from aiogram_dialog.widgets.text import Const, Format
@@ -12,6 +12,7 @@ from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from sqlalchemy import select, delete, func
 from models import Welders
 from states.states import WeldersSG, CommandSG
+from utils.access import admin_required
 
 
 welders_router = Router()
@@ -60,6 +61,7 @@ async def weld_list(dialog_manager: DialogManager, **kwargs):
 
 
 # Добавление сварщика
+@admin_required
 async def add_weld_name(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     dialog_manager.dialog_data["name"] = text
     await dialog_manager.next()
@@ -134,8 +136,11 @@ async def skip_photo(c: CallbackQuery, button: Button, manager: DialogManager):
     await c.answer("Фото пропущено.")
     await manager.next()
 
+@admin_required
 async def delete_selected_weld(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")
+    if not await check_admin_access(callback, dialog_manager):
+        return
 
     if not session_factory:
         await callback.answer("⚠ Ошибка: База данных недоступна.")
@@ -162,7 +167,7 @@ async def delete_selected_weld(callback: CallbackQuery, button: Button, dialog_m
     await dialog_manager.reset_stack()
     await dialog_manager.start(state=CommandSG.start)
 
-
+@admin_required
 async def save_selected_weld_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
     dialog_manager.dialog_data["edit_weld_id"] = int(item_id)  # Сохраняем ID выбранного сварщика
     await dialog_manager.next()  # Переход к следующему шагу
@@ -217,6 +222,7 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
     await dialog_manager.reset_stack()
     await dialog_manager.start(state=CommandSG.start)
 
+@admin_required
 async def save_info_weld_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
     logging.info(f"Выбран сварщика с ID {item_id}")
     dialog_manager.dialog_data["welder_id"] = int(item_id)
@@ -239,6 +245,7 @@ async def get_welders_data(dialog_manager: DialogManager, **kwargs):
                 file_id=MediaId(weld.photo_id),
             ) if weld.photo_id else None,
         }
+
 
 
 welders_dialog = Dialog(
@@ -378,4 +385,4 @@ welders_dialog = Dialog(
     ),
 )
 
-welders_router.include_router(welders_dialog)
+#welders_router.include_router(welders_dialog)

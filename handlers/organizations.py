@@ -8,10 +8,10 @@ from aiogram_dialog.widgets.input import TextInput
 from sqlalchemy import select, delete, func
 from models import Organization
 from states.states import OrgSG, CommandSG
+from utils.access import admin_required
 
 
 org_router = Router()
-
 
 async def back_command(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     await dialog_manager.start(state=CommandSG.start,mode=StartMode.RESET_STACK,)
@@ -75,6 +75,7 @@ async def show_org_info(c: CallbackQuery, button: Button, dialog_manager: Dialog
         await c.message.answer(info, parse_mode="HTML")
 
 # Добавление организации
+@admin_required
 async def add_org_name(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     # Проверка на существование организации с таким названием
     session_factory = dialog_manager.middleware_data.get("session_factory")
@@ -125,6 +126,7 @@ async def add_org_email(event:Message, widget: TextInput, dialog_manager: Dialog
     await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
 
 
+@admin_required
 async def delete_selected_orgs(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")
 
@@ -154,10 +156,10 @@ async def delete_selected_orgs(callback: CallbackQuery, button: Button, dialog_m
     await dialog_manager.start(state=CommandSG.start)
 
 
+@admin_required
 async def save_selected_org_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
     dialog_manager.dialog_data["edit_org_id"] = int(item_id)  # Сохраняем ID выбранной организации
     await dialog_manager.next()  # Переход к следующему шагу
-
 
 # Редактирование организации
 async def edit_org_field(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
@@ -204,7 +206,9 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
     await dialog_manager.done()
     await dialog_manager.reset_stack()
     await dialog_manager.start(state=CommandSG.start)
+    
 
+@admin_required
 async def save_info_org_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
     session_factory = dialog_manager.middleware_data.get("session_factory")
     async with session_factory() as session:
@@ -230,8 +234,8 @@ start_dialog = Dialog(
         Column(
             SwitchTo(Const("ℹ️ Информация об организации"), id="info_org", state=OrgSG.info_org),
             SwitchTo(Const("✅ Добавить"), id="add_name", state=OrgSG.add_name),
-            SwitchTo(Const("📝 Редактировать"), id="select_org", state=OrgSG.select_org),
-            SwitchTo(Const("❌ Удалить"), id="delete_org", state=OrgSG.delete_org),
+            SwitchTo(Const("📝 Редактировать"),  id="select_org",state=OrgSG.select_org),
+            SwitchTo(Const("❌ Удалить"),  id="delete_org",state=OrgSG.delete_org),
             Button(Const("🔙 Назад"), id="back", on_click=back_command),
         ),
         state=OrgSG.start,
@@ -325,4 +329,4 @@ start_dialog = Dialog(
     ),
 )
 
-org_router.include_router(start_dialog)
+#org_router.include_router(start_dialog)

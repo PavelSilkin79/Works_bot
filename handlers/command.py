@@ -11,6 +11,9 @@ from db import init_db
 from config_data.config import load_config
 from models import Organization, Installers, Welders
 from states.states import CommandSG, OrgSG, InstallersSG, WeldersSG
+from aiogram.types import TelegramObject
+from utils.access import admin_required
+
 
 command_router = Router()
 
@@ -194,4 +197,4 @@ add_dialog = Dialog(
     )
 )
 
-command_router.include_router(add_dialog)
+#command_router.include_router(add_dialog)

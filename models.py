@@ -1,10 +1,26 @@
 from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 
 
 # Создаем базовый класс для моделей
 Base = declarative_base()
+
+
+class User(Base):
+    __tablename__ = "users"
+
+    tg_id = Column(Integer, primary_key=True, index=True)
+    is_admin = Column(Boolean, default=False)
+
+class Admin(Base):
+    __tablename__ = "admins"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(BigInteger, unique=True, nullable=False)
+
+    def __repr__(self):
+        return f"<Admin user_id={self.user_id}>"
 
 class Organization(Base):
     __tablename__ = 'organizations'
@@ -41,4 +57,3 @@ class Welders(Base):
     phone = Column(String, nullable=False)
     address = Column(String, nullable=True)
     email = Column(String, nullable=True)
-

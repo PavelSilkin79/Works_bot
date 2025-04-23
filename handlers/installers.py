@@ -12,7 +12,7 @@ from aiogram_dialog.api.entities import MediaAttachment, MediaId
 from sqlalchemy import select, delete, func
 from models import Installers
 from states.states import InstallersSG, CommandSG
-
+from utils.access import admin_required
 
 installers_router = Router()
 
@@ -60,6 +60,7 @@ async def inst_list(dialog_manager: DialogManager, **kwargs):
 
 
 # Добавление организации
+@admin_required
 async def add_inst_name(event: Message, widget: TextInput, dialog_manager: DialogManager, text: str):
     dialog_manager.dialog_data["name"] = text
     await dialog_manager.next()
@@ -135,9 +136,9 @@ async def skip_photo(c: CallbackQuery, button: Button, manager: DialogManager):
     await c.answer("Фото пропущено.")
     await manager.next()
 
+@admin_required
 async def delete_selected_inst(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")
-
     if not session_factory:
         await callback.answer("⚠ Ошибка: База данных недоступна.")
         return
@@ -163,7 +164,7 @@ async def delete_selected_inst(callback: CallbackQuery, button: Button, dialog_m
     await dialog_manager.reset_stack()
     await dialog_manager.start(state=CommandSG.start)
 
-
+@admin_required
 async def save_selected_inst_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
     dialog_manager.dialog_data["edit_inst_id"] = int(item_id)  # Сохраняем ID выбранного монтажника
     await dialog_manager.next()  # Переход к следующему шагу
@@ -218,6 +219,7 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
     await dialog_manager.reset_stack()
     await dialog_manager.start(state=CommandSG.start)
 
+@admin_required
 async def save_info_inst_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
     logging.info(f"Выбран монтажник с ID {item_id}")
     dialog_manager.dialog_data["installer_id"] = int(item_id)
@@ -380,4 +382,4 @@ installers_dialog = Dialog(
     ),
 )
 
-installers_router.include_router(installers_dialog)
+#installers_router.include_router(installers_dialog)

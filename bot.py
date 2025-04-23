@@ -3,13 +3,18 @@ import logging
 from db import init_db
 from aiogram import Bot, Dispatcher
 from aiogram.fsm.storage.redis import RedisStorage, DefaultKeyBuilder
-from aiogram_dialog import setup_dialogs
 from config_data.config import Config, load_config, check_redis_connection, check_postgres_connection
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
-from handlers import command, organizations, installers, welders, other
+from aiogram_dialog import setup_dialogs
+from handlers.command import command_router, add_dialog
+from handlers.installers import installers_router, installers_dialog
+from handlers.welders import welders_router, welders_dialog
+from handlers.organizations import org_router, start_dialog
+from handlers.other import other_router
+from handlers.admin import admin_router
 from keyboards.main_menu import set_main_menu
-from middlewares.db import DBSessionMiddleware  # путь к мидлваре
+from middlewares.db import DBSessionMiddleware, AccessControlMiddleware  # путь к мидлваре
 #from aiogram.fsm.storage.memory import MemoryStorage
 from redis.asyncio import Redis
 
@@ -63,17 +68,24 @@ async def start_bot():
 
     # Подключаем middleware
     dp.message.middleware(DBSessionMiddleware(session_factory))
+    dp.message.middleware(AccessControlMiddleware(session_factory))
+    dp.callback_query.middleware(AccessControlMiddleware(session_factory))
     dp.callback_query.middleware(DBSessionMiddleware(session_factory))
 
     # Настройка диалогов
     setup_dialogs(dp)
 
     # Регистрируем роутеры в диспетчере
-    dp.include_router(command.command_router)
-    dp.include_router(organizations.org_router)
-    dp.include_router(installers.installers_router)
-    dp.include_router(welders.welders_router)
-    dp.include_router(other.other_router)
+    dp.include_router(admin_router)
+    dp.include_router(org_router)
+    dp.include_router(start_dialog)
+    dp.include_router(command_router)
+    dp.include_router(add_dialog)
+    dp.include_router(installers_router)
+    dp.include_router(installers_dialog)
+    dp.include_router(welders_router)
+    dp.include_router(welders_dialog)
+    dp.include_router(other_router)
 
     # Настроим главное меню бота
     await set_main_menu(bot)
