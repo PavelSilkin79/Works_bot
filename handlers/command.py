@@ -99,7 +99,7 @@ async def list_welders(message: Message, dialog_manager: DialogManager):
         text = "\n".join([f"{weld.id}. {weld.name} {weld.surname}" for weld in welders])
         await message.answer(f"Список сварщиков:\n{text}")
 
-    await dialog_manager.start(state=WeldersSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
+    await dialog_manager.start(state=WeldersSG.start, mode=StartMode.RESET_STACK)
 
 async def check_and_start_org(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")
@@ -113,7 +113,7 @@ async def check_and_start_org(callback: CallbackQuery, button: Button, dialog_ma
             dialog_manager.dialog_data["session_factory"] = session_factory
             await dialog_manager.start(state=CommandSG.empty_organization, mode=StartMode.RESET_STACK)
         else:
-            await dialog_manager.start(state=OrgSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
+            await dialog_manager.start(state=OrgSG.start, mode=StartMode.RESET_STACK)
 
 async def check_and_start_inst(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")

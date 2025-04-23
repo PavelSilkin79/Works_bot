@@ -13,8 +13,9 @@ from handlers.welders import welders_router, welders_dialog
 from handlers.organizations import org_router, start_dialog
 from handlers.other import other_router
 from handlers.admin import admin_router
+from handlers import errors
 from keyboards.main_menu import set_main_menu
-from middlewares.db import DBSessionMiddleware, AccessControlMiddleware  # путь к мидлваре
+from middlewares.db import DBSessionMiddleware, AccessControlMiddleware, ErrorMiddleware  # путь к мидлваре
 #from aiogram.fsm.storage.memory import MemoryStorage
 from redis.asyncio import Redis
 
@@ -69,8 +70,10 @@ async def start_bot():
     # Подключаем middleware
     dp.message.middleware(DBSessionMiddleware(session_factory))
     dp.message.middleware(AccessControlMiddleware(session_factory))
+    dp.message.middleware(ErrorMiddleware())
     dp.callback_query.middleware(AccessControlMiddleware(session_factory))
     dp.callback_query.middleware(DBSessionMiddleware(session_factory))
+    dp.callback_query.middleware(ErrorMiddleware())
 
     # Настройка диалогов
     setup_dialogs(dp)
@@ -85,6 +88,7 @@ async def start_bot():
     dp.include_router(installers_dialog)
     dp.include_router(welders_router)
     dp.include_router(welders_dialog)
+    dp.include_router(errors.error_router)
     dp.include_router(other_router)
 
     # Настроим главное меню бота

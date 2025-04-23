@@ -162,7 +162,7 @@ async def delete_selected_inst(callback: CallbackQuery, button: Button, dialog_m
     await callback.answer("✅ Монтажники удалены!")
      # Обновляем данные вручную через restart
     await dialog_manager.reset_stack()
-    await dialog_manager.start(state=CommandSG.start)
+    await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
 
 @admin_required
 async def save_selected_inst_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):
@@ -217,7 +217,7 @@ async def save_edited_field(event: Message, widget: TextInput, dialog_manager: D
 
     await dialog_manager.done()
     await dialog_manager.reset_stack()
-    await dialog_manager.start(state=CommandSG.start)
+    await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
 
 @admin_required
 async def save_info_inst_id(callback: CallbackQuery, select: Select, dialog_manager: DialogManager, item_id: str):

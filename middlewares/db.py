@@ -1,7 +1,9 @@
-from aiogram.types import Message
+from aiogram import types
+from aiogram.types import Message, CallbackQuery
 from aiogram import BaseMiddleware
 from typing import Callable, Dict, Any, Awaitable
 from sqlalchemy.ext.asyncio import async_sessionmaker
+from aiogram.exceptions import TelegramAPIError
 from sqlalchemy import select
 from models import User
 
@@ -29,3 +31,18 @@ class AccessControlMiddleware(BaseMiddleware):
                 data["user_exists"] = user is not None
 
         return await handler(event, data)
+
+class ErrorMiddleware(BaseMiddleware):
+    async def __call__(self, handler, event, data):
+        try:
+            return await handler(event, data)
+        except TelegramAPIError as e:
+            logger.warning(f"⚠️ Telegram API error: {e}")
+            if isinstance(event, (Message, CallbackQuery)):
+                await event.answer("⚠️ Ошибка Telegram API. Попробуйте позже.")
+        except Exception as e:
+            logger.exception("❌ Необработанная ошибка:")
+            if isinstance(event, Message):
+                await event.answer("🚨 Произошла ошибка. Мы уже разбираемся.")
+            elif isinstance(event, CallbackQuery):
+                await event.answer("🚨 Произошла ошибка. Попробуйте ещё раз.")
