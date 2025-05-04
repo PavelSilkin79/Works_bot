@@ -4,7 +4,7 @@ from aiogram_dialog import DialogManager
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from config_data.config import load_config
-from models import Admin  # Убедись, что путь правильный
+from db import models  # Убедись, что путь правильный
 
 
 

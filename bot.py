@@ -7,13 +7,8 @@ from config_data.config import Config, load_config, check_redis_connection, chec
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram_dialog import setup_dialogs
-from handlers.command import command_router, add_dialog
-from handlers.installers import installers_router, installers_dialog
-from handlers.welders import welders_router, welders_dialog
-from handlers.organizations import org_router, start_dialog
-from handlers.other import other_router
-from handlers.admin import admin_router
-from handlers import errors
+from dialogs import command_dialog, inst_dialog, weld_dialog, org_dialog
+from handlers import command, admin, other, errors
 from keyboards.main_menu import set_main_menu
 from middlewares.db import DBSessionMiddleware, AccessControlMiddleware, ErrorMiddleware  # путь к мидлваре
 #from aiogram.fsm.storage.memory import MemoryStorage
@@ -64,6 +59,7 @@ async def start_bot():
 #    storage = MemoryStorage()
     dp = Dispatcher(storage=storage)
 
+
         # Инициализируем сессию
     session_factory: async_sessionmaker = await init_db(config)
 
@@ -75,21 +71,22 @@ async def start_bot():
     dp.callback_query.middleware(DBSessionMiddleware(session_factory))
     dp.callback_query.middleware(ErrorMiddleware())
 
-    # Настройка диалогов
-    setup_dialogs(dp)
 
     # Регистрируем роутеры в диспетчере
-    dp.include_router(admin_router)
-    dp.include_router(org_router)
-    dp.include_router(start_dialog)
-    dp.include_router(command_router)
-    dp.include_router(add_dialog)
-    dp.include_router(installers_router)
-    dp.include_router(installers_dialog)
-    dp.include_router(welders_router)
-    dp.include_router(welders_dialog)
+    dp.include_router(command.command_router)
+    dp.include_routers(
+        command_dialog,
+        inst_dialog,
+        weld_dialog,
+        org_dialog,
+    )
+    dp.include_router(admin.admin_router)
     dp.include_router(errors.error_router)
-    dp.include_router(other_router)
+    dp.include_router(other.other_router)
+
+
+    # Настройка диалогов
+    setup_dialogs(dp)
 
     # Настроим главное меню бота
     await set_main_menu(bot)

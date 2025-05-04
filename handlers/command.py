@@ -7,10 +7,10 @@ from aiogram_dialog import Dialog, DialogManager, StartMode, Window
 from aiogram_dialog.widgets.text import Const
 from aiogram_dialog.widgets.kbd import Row, Button, Column, Select, Multiselect
 from sqlalchemy import select
-from db import init_db
+from db import database
 from config_data.config import load_config
-from models import Organization, Installers, Welders
-from states.states import CommandSG, OrgSG, InstallersSG, WeldersSG
+from db.models import Organization, Installers, Welders
+from states import CommandSG, OrgSG, InstallersSG, WeldersSG
 from aiogram.types import TelegramObject
 from utils.access import admin_required
 
@@ -127,7 +127,7 @@ async def check_and_start_inst(callback: CallbackQuery, button: Button, dialog_m
             dialog_manager.dialog_data["session_factory"] = session_factory
             await dialog_manager.start(state=CommandSG.empty_installers, mode=StartMode.RESET_STACK)
         else:
-            await dialog_manager.start(state=InstallersSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
+            await dialog_manager.start(state=InstallersSG.start, mode=StartMode.RESET_STACK)
 
 async def check_and_start_welders(callback: CallbackQuery, button: Button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")  # Получаем session_factory
@@ -141,60 +141,21 @@ async def check_and_start_welders(callback: CallbackQuery, button: Button, dialo
             dialog_manager.dialog_data["session_factory"] = session_factory
             await dialog_manager.start(state=CommandSG.empty_welders, mode=StartMode.RESET_STACK)
         else:
-            await dialog_manager.start(state=WeldersSG.start, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
+            await dialog_manager.start(state=WeldersSG.start, mode=StartMode.RESET_STACK)
 
 
 # кнопки меню
 async def go_add_org(callback: CallbackQuery, button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")  # Получаем session_factory
-    await dialog_manager.start(state=OrgSG.add_name, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
+    await dialog_manager.start(state=OrgSG.add_name, mode=StartMode.RESET_STACK)
 
 async def go_add_inst(callback: CallbackQuery, button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")  # Получаем session_factory
-    await dialog_manager.start(state=InstallersSG.add_name, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
+    await dialog_manager.start(state=InstallersSG.add_name, mode=StartMode.RESET_STACK)
 
 async def go_add_welder(callback: CallbackQuery, button, dialog_manager: DialogManager):
     session_factory = dialog_manager.middleware_data.get("session_factory")  # Получаем session_factory
-    await dialog_manager.start(state=WeldersSG.add_name, mode=StartMode.RESET_STACK)#, data={"session_factory": session_factory})
+    await dialog_manager.start(state=WeldersSG.add_name, mode=StartMode.RESET_STACK)
 
 async def go_back_main(callback: CallbackQuery, button, dialog_manager: DialogManager):
     await dialog_manager.start(state=CommandSG.start, mode=StartMode.RESET_STACK)
-
-
-add_dialog = Dialog(
-    Window(
-        Const('Выбери действие ниже, чтобы начать 👇'),
-        Column(
-            Button(Const("✅ ОРГАНИЗАЦИИ"), id="org", on_click=check_and_start_org),
-            Button(Const("✅ МОНТАЖНИКИ"), id="installers", on_click=check_and_start_inst),
-            Button(Const("✅ СВАРЩИКИ"), id="welders", on_click=check_and_start_welders),
-        ),
-        state=CommandSG.start,
-    ),
-        Window(
-        Const("❗ Список организаций пуст. Хотите добавить новую?"),
-        Row(
-            Button(Const("✅ Да"), id="add_org", on_click=go_add_org),
-            Button(Const("🔙 Нет"), id="back_main", on_click=go_back_main),
-        ),
-        state=CommandSG.empty_organization,
-    ),
-    Window(
-        Const("❗ Список сварщиков пуст. Хотите добавить нового?"),
-        Row(
-            Button(Const("✅ Да"), id="add_welder", on_click=go_add_welder),
-            Button(Const("🔙 Нет"), id="back_main", on_click=go_back_main),
-        ),
-        state=CommandSG.empty_welders,
-    ),
-    Window(
-        Const("❗ Список монтажников пуст. Хотите добавить нового?"),
-        Row(
-            Button(Const("✅ Да"), id="add_inst", on_click=go_add_inst),
-            Button(Const("🔙 Нет"), id="back_main", on_click=go_back_main),
-        ),
-        state=CommandSG.empty_installers,
-    )
-)
-
-#command_router.include_router(add_dialog)

@@ -1,7 +1,7 @@
 from aiogram import Router, F
 from aiogram.types import Message
 from sqlalchemy import insert, update, delete
-from models import User
+from db import models
 
 admin_router = Router()
 

@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from config_data.config import Config, load_config
-from models import Base
+from .models import Base
 
 
 # Асинхронная функция создания подключения к базе данных

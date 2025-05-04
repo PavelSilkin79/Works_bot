@@ -1,3 +1,4 @@
+import logging
 from aiogram import types
 from aiogram.types import Message, CallbackQuery
 from aiogram import BaseMiddleware
@@ -5,7 +6,17 @@ from typing import Callable, Dict, Any, Awaitable
 from sqlalchemy.ext.asyncio import async_sessionmaker
 from aiogram.exceptions import TelegramAPIError
 from sqlalchemy import select
-from models import User
+from db.models import User
+
+# Конфигурируем логирование
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='[%(asctime)s] #%(levelname)-8s %(filename)s:%(lineno)d - %(name)s - %(message)s'
+)
+
+# Инициализируем логгер
+logger = logging.getLogger(__name__)
+
 
 class DBSessionMiddleware(BaseMiddleware):
     def __init__(self, session_factory: async_sessionmaker):

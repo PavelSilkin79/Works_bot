@@ -4,7 +4,7 @@ from aiogram_dialog.api.exceptions import UnknownIntent
 from aiogram_dialog import DialogManager, StartMode
 from aiogram.utils.markdown import hbold
 
-from states.states import CommandSG  # Или твое стартовое состояние
+from states import CommandSG  # Или твое стартовое состояние
 
 error_router = Router(name="errors")
 
