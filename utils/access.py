@@ -71,37 +71,3 @@ def admin_required(handler):
         return await handler(event, *args, **kwargs)
 
     return wrapper
-# 🧪 Пример использования
-# python
-# Копировать
-# Редактировать
-# @command_router.message(Command("add_admin"))
-# @owner_only
-# async def add_admin(message: Message, session_factory: Callable):
-#     parts = message.text.split()
-#     if len(parts) != 2 or not parts[1].isdigit():
-#         await message.answer("⚠️ Использование: /add_admin <user_id>")
-#         return
-
-#     user_id = int(parts[1])
-#     async with session_factory() as session:
-#         admin = Admin(user_id=user_id)
-#         session.add(admin)
-#         await session.commit()
-
-#     await message.answer(f"✅ Пользователь {user_id} добавлен в администраторы.")
-
-
-# @command_router.message(Command("list_organizations"))
-# @admin_required
-# async def list_orgs(message: Message, session_factory: Callable):
-#     async with session_factory() as session:
-#         result = await session.execute(select(Organization))
-#         organizations = result.scalars().all()
-
-#         if not organizations:
-#             await message.answer("Организаций пока нет.")
-#             return
-
-#         text = "\n".join([f"{org.name}" for org in organizations])
-#         await message.answer(f"📋 Список организаций:\n{text}")

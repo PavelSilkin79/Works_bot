@@ -1,5 +1,46 @@
-/.venv
-config.py
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+
+# Env
 .env
-app.py
-__pycache__
+venv/
+env/
+.venv/
+ENV/
+
+# VSCode
+.vscode/
+
+# PyCharm
+.idea/
+
+# Byte-compiled
+*.pyc
+*.pkl
+
+# Databases
+*.sqlite3
+*.db
+
+# CSV/Exports
+*.csv
+
+# Jupyter
+.ipynb_checkpoints/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# MyPy, Coverage, etc
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Alembic
+alembic/versions/*.pyc
+alembic/versions/__pycache__/
